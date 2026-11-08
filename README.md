@@ -109,7 +109,7 @@ src/biokinex/
 BioKineX requires **Python 3.11 or newer**.
 
 ```bash
-git clone https://github.com/biokinex/biokinex.git
+git clone https://github.com/busradeveci/biokinex.git
 cd biokinex
 python -m venv .venv
 ```

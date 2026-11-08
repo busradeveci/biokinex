@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "biokinex"
-version = "0.1.0.dev0"
+dynamic = ["version"]
 description = "Deterministic, real-time DSP middleware for stabilizing high-frequency kinematic telemetry from IMUs, wearables, and robotic prosthetics."
 readme = "README.md"
 license = "Apache-2.0"
@@ -48,13 +48,16 @@ dependencies = [
 fast = ["orjson>=3.10"]
 
 [project.urls]
-Documentation = "https://github.com/biokinex/biokinex#readme"
-Source = "https://github.com/biokinex/biokinex"
-Issues = "https://github.com/biokinex/biokinex/issues"
+Documentation = "https://github.com/busradeveci/biokinex#readme"
+Source = "https://github.com/busradeveci/biokinex"
+Issues = "https://github.com/busradeveci/biokinex/issues"
 
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
+
+[tool.hatch.version]
+path = "src/biokinex/_version.py"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/biokinex"]
