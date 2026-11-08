@@ -229,6 +229,11 @@ class TestRotationVector:
         v = np.array([1e-10, -2e-10, 3e-10])
         assert_allclose(quat.to_rotation_vector(quat.from_rotation_vector(v)), v, rtol=1e-9)
 
+    def test_half_turn_with_subnormal_scalar_does_not_overflow(self) -> None:
+        s = 1.0 / math.sqrt(3.0)
+        q = np.array([1e-311, s, s, s])
+        assert_allclose(quat.to_rotation_vector(q), [math.pi * s] * 3, atol=1e-12)
+
     def test_negated_quaternion_gives_same_vector(self) -> None:
         q = quat.from_rotation_vector([0.4, -0.2, 1.1])
         assert_allclose(quat.to_rotation_vector(-q), quat.to_rotation_vector(q), atol=ATOL)

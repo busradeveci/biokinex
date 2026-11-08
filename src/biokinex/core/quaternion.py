@@ -190,7 +190,8 @@ def to_rotation_vector(q: npt.ArrayLike) -> Vector3:
     length = np.linalg.norm(u, axis=-1, keepdims=True)
     small = length < _SMALL_ANGLE
     safe_length = np.where(small, 1.0, length)
-    safe_w = np.where(w > 0.0, w, 1.0)
+    # np.where computes both branches, so w is only used as a divisor where it is close to 1.
+    safe_w = np.where(small & (w > 0.0), w, 1.0)
     # Near the identity, angle / length tends to 2 / w, which avoids dividing by zero.
     scale = np.where(small, 2.0 / safe_w, 2.0 * np.arctan2(length, w) / safe_length)
     return np.asarray(u * scale)
