@@ -39,6 +39,25 @@ def test_optional_channels_may_be_absent() -> None:
     assert len(batch) == 2
 
 
+def test_select_keeps_rows_in_order() -> None:
+    batch = make_batch(4, joint_angles=np.array([[0.0], [1.0], [2.0], [3.0]]))
+    selected = batch.select(np.array([3, 1], dtype=np.int64))
+    assert len(selected) == 2
+    assert selected.sequences.tolist() == [3, 1]
+    assert selected.joint_names == ("knee",)
+    assert selected.joint_angles is not None
+    assert selected.joint_angles.tolist() == [[3.0], [1.0]]
+    assert selected.acceleration is not None
+    assert not selected.acceleration.flags.writeable
+
+
+def test_select_keeps_absent_channels_absent() -> None:
+    batch = make_batch(3, orientation=None, joint_angles=None, joint_names=())
+    selected = batch.select(np.array([0], dtype=np.int64))
+    assert selected.orientation is None
+    assert selected.joint_angles is None
+
+
 def test_is_frozen() -> None:
     batch = make_batch()
     with pytest.raises(AttributeError):

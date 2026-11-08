@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import math
 from enum import StrEnum
-from typing import Any, Final, Literal, Self, TypeVar
+from typing import Final, Literal, Self
 
 import numpy as np
 from pydantic import Field, ValidationError, model_validator
@@ -34,7 +34,7 @@ from pydantic import Field, ValidationError, model_validator
 from biokinex.core import quaternion
 from biokinex.core.errors import TelemetryError
 from biokinex.core.types import STANDARD_GRAVITY
-from biokinex.schemas.batch import SampleBatch
+from biokinex.schemas.batch import SampleBatch, read_only
 from biokinex.schemas.common import (
     MAX_JOINTS,
     FiniteFloat,
@@ -56,8 +56,6 @@ __all__ = [
     "TelemetrySample",
     "Units",
 ]
-
-_ArrayT = TypeVar("_ArrayT", bound=np.ndarray[Any, Any])
 
 MAX_SAMPLES_PER_PACKET: Final = 256
 """Upper bound on samples per packet, which caps the work and memory one packet can cause."""
@@ -219,39 +217,33 @@ class TelemetryPacket(FrozenModel):
         acceleration = None
         if first.acceleration is not None:
             raw = np.array([s.acceleration for s in samples], dtype=np.float64)
-            acceleration = _read_only(raw * self.units.acceleration.si_factor)
+            acceleration = read_only(raw * self.units.acceleration.si_factor)
 
         angular_velocity = None
         if first.angular_velocity is not None:
             raw = np.array([s.angular_velocity for s in samples], dtype=np.float64)
-            angular_velocity = _read_only(raw * self.units.angular_velocity.si_factor)
+            angular_velocity = read_only(raw * self.units.angular_velocity.si_factor)
 
         orientation = None
         if first.orientation_quaternion is not None:
             raw = np.array([s.orientation_quaternion for s in samples], dtype=np.float64)
-            orientation = _read_only(quaternion.normalize(raw))
+            orientation = read_only(quaternion.normalize(raw))
         elif first.orientation_euler is not None:
             raw = np.array([s.orientation_euler for s in samples], dtype=np.float64)
-            orientation = _read_only(quaternion.from_euler_zyx(raw * self.units.angle.si_factor))
+            orientation = read_only(quaternion.from_euler_zyx(raw * self.units.angle.si_factor))
 
         joint_angles = None
         if first.joint_angles is not None:
             raw = np.array([s.joint_angles for s in samples], dtype=np.float64)
-            joint_angles = _read_only(raw * self.units.angle.si_factor)
+            joint_angles = read_only(raw * self.units.angle.si_factor)
 
         return SampleBatch(
             device_id=self.device_id,
-            timestamps=_read_only(np.array([s.timestamp for s in samples], dtype=np.float64)),
-            sequences=_read_only(np.array([s.sequence for s in samples], dtype=np.int64)),
+            timestamps=read_only(np.array([s.timestamp for s in samples], dtype=np.float64)),
+            sequences=read_only(np.array([s.sequence for s in samples], dtype=np.int64)),
             acceleration=acceleration,
             angular_velocity=angular_velocity,
             orientation=orientation,
             joint_names=self.joint_names,
             joint_angles=joint_angles,
         )
-
-
-def _read_only(array: _ArrayT) -> _ArrayT:
-    """Lock an array against writes so later stages cannot change shared input by accident."""
-    array.flags.writeable = False
-    return array

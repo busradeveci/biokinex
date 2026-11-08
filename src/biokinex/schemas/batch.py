@@ -7,11 +7,26 @@ is validated it becomes a :class:`SampleBatch`: plain NumPy arrays in SI units, 
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, TypeVar
 
 import numpy as np
 import numpy.typing as npt
 
 from biokinex.core.types import QUATERNION_SIZE, VECTOR3_SIZE, FloatArray, IntArray
+
+__all__ = ["SampleBatch", "read_only"]
+
+_ArrayT = TypeVar("_ArrayT", bound=np.ndarray[Any, Any])
+
+
+def read_only(array: _ArrayT) -> _ArrayT:
+    """Lock an array against writes and return it.
+
+    Batches are shared between pipeline stages, so a locked array stops one stage from changing
+    the data another stage is reading.
+    """
+    array.flags.writeable = False
+    return array
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -52,6 +67,27 @@ class SampleBatch:
 
     def __len__(self) -> int:
         return int(self.timestamps.shape[0])
+
+    def select(self, indices: IntArray) -> SampleBatch:
+        """Return a new batch with only the samples at ``indices``, in the given order.
+
+        The arrays are copies, and they are read-only like the original ones.
+        """
+        return SampleBatch(
+            device_id=self.device_id,
+            timestamps=read_only(self.timestamps[indices]),
+            sequences=read_only(self.sequences[indices]),
+            acceleration=_select_optional(self.acceleration, indices),
+            angular_velocity=_select_optional(self.angular_velocity, indices),
+            orientation=_select_optional(self.orientation, indices),
+            joint_names=self.joint_names,
+            joint_angles=_select_optional(self.joint_angles, indices),
+        )
+
+
+def _select_optional(array: FloatArray | None, indices: IntArray) -> FloatArray | None:
+    """Select rows from an optional channel, keeping ``None`` as ``None``."""
+    return None if array is None else read_only(array[indices])
 
 
 def _check_array(
