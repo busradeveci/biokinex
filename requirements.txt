@@ -1,0 +1,4 @@
+# Runtime dependencies for BioKineX.
+# Keep in sync with [project.dependencies] in pyproject.toml.
+numpy>=1.26,<3
+pydantic>=2.6,<3

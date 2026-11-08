@@ -1,0 +1,83 @@
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.pyd
+
+# Packaging / build artifacts
+build/
+dist/
+wheels/
+*.egg-info/
+*.egg
+.eggs/
+pip-wheel-metadata/
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# ---------------------------------------------------------------------------
+# Testing, coverage & tooling caches
+# ---------------------------------------------------------------------------
+.pytest_cache/
+.hypothesis/
+.benchmarks/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+.pyre/
+.pytype/
+
+# Profiling output
+*.prof
+*.lprof
+prof/
+
+# ---------------------------------------------------------------------------
+# Local telemetry captures (recorded sessions used for replay / tuning)
+# Commit small, curated fixtures under tests/data/ instead.
+# ---------------------------------------------------------------------------
+/recordings/
+/captures/
+
+# ---------------------------------------------------------------------------
+# Local configuration & secrets
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.local.toml
+
+# ---------------------------------------------------------------------------
+# Editors & IDEs
+# ---------------------------------------------------------------------------
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ---------------------------------------------------------------------------
+# Operating systems
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/

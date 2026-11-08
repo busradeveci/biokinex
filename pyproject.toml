@@ -1,0 +1,160 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "biokinex"
+version = "0.1.0.dev0"
+description = "Deterministic, real-time DSP middleware for stabilizing high-frequency kinematic telemetry from IMUs, wearables, and robotic prosthetics."
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [{ name = "The BioKineX Authors" }]
+keywords = [
+    "dsp",
+    "imu",
+    "sensor-fusion",
+    "quaternion",
+    "complementary-filter",
+    "one-euro-filter",
+    "robotics",
+    "prosthetics",
+    "real-time",
+    "telemetry",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: System :: Hardware",
+    "Typing :: Typed",
+]
+dependencies = [
+    "numpy>=1.26,<3",
+    "pydantic>=2.6,<3",
+]
+
+[project.optional-dependencies]
+fast = ["orjson>=3.10"]
+
+[project.urls]
+Documentation = "https://github.com/biokinex/biokinex#readme"
+Source = "https://github.com/biokinex/biokinex"
+Issues = "https://github.com/biokinex/biokinex/issues"
+
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/biokinex"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/biokinex", "tests", "README.md", "LICENSE", "pyproject.toml"]
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+xfail_strict = true
+filterwarnings = ["error"]
+markers = [
+    "integration: end-to-end tests spanning multiple modules or real sockets",
+    "slow: long-running tests (soak / leak detection)",
+]
+
+# ---------------------------------------------------------------------------
+# Coverage
+# ---------------------------------------------------------------------------
+
+[tool.coverage.run]
+source = ["biokinex"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 90
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@(typing\\.)?overload",
+    "\\.\\.\\.",
+]
+
+# ---------------------------------------------------------------------------
+# Mypy
+# ---------------------------------------------------------------------------
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src", "tests"]
+strict = true
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+plugins = ["pydantic.mypy"]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+# ---------------------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------------------
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",     # pycodestyle errors
+    "W",     # pycodestyle warnings
+    "F",     # pyflakes
+    "I",     # isort
+    "B",     # flake8-bugbear
+    "C4",    # flake8-comprehensions
+    "UP",    # pyupgrade
+    "N",     # pep8-naming
+    "SIM",   # flake8-simplify
+    "RET",   # flake8-return
+    "PT",    # flake8-pytest-style
+    "ASYNC", # flake8-async
+    "PERF",  # perflint
+    "NPY",   # numpy-specific rules
+    "PL",    # pylint
+    "TID",   # flake8-tidy-imports
+    "RUF",   # ruff-specific rules
+]
+ignore = [
+    "PLR2004", # DSP math is full of legitimate numeric constants
+    "PLR0913", # filter constructors take many tuning parameters by design
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["PLR0915", "PLC2701"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.format]
+quote-style = "double"
+docstring-code-format = true
