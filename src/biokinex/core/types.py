@@ -14,6 +14,9 @@ import numpy.typing as npt
 FloatArray: TypeAlias = npt.NDArray[np.float64]
 """A ``float64`` NumPy array of any shape."""
 
+IntArray: TypeAlias = npt.NDArray[np.int64]
+"""An ``int64`` NumPy array of any shape."""
+
 BoolArray: TypeAlias = npt.NDArray[np.bool_]
 """A boolean NumPy array of any shape."""
 

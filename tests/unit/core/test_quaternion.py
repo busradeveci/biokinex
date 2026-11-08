@@ -294,6 +294,16 @@ class TestEuler:
     def test_quaternion_round_trip(self, q: FloatArray) -> None:
         assert_same_rotation(quat.from_euler_zyx(quat.to_euler_zyx(q)), q, atol=1e-7)
 
+    @pytest.mark.parametrize(
+        ("q", "expected"),
+        [(I, [-math.pi, 0.0, 0.0]), (K, [0.0, 0.0, -math.pi]), (J, [-math.pi, 0.0, -math.pi])],
+        ids=["half_turn_roll", "half_turn_yaw", "half_turn_pitch"],
+    )
+    def test_half_turns_map_to_minus_pi(self, q: FloatArray, expected: list[float]) -> None:
+        angles = quat.to_euler_zyx(q)
+        assert_allclose(angles, expected, atol=ATOL)
+        assert np.all(angles[[0, 2]] < math.pi)
+
     def test_output_ranges(self) -> None:
         angles = quat.to_euler_zyx(quat.from_euler_zyx([3.0, -1.4, -3.0]))
         assert -math.pi <= angles[0] <= math.pi

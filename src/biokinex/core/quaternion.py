@@ -231,7 +231,7 @@ def from_euler_zyx(angles: npt.ArrayLike) -> Quaternion:
 def to_euler_zyx(q: npt.ArrayLike) -> EulerAngles:
     """Convert unit quaternion(s) to intrinsic ZYX Euler angles ``(roll, pitch, yaw)``.
 
-    Roll and yaw are in ``[-pi, pi]`` and pitch is in ``[-pi/2, pi/2]``. At ±90° pitch, roll and
+    Roll and yaw are in ``[-pi, pi)`` and pitch is in ``[-pi/2, pi/2]``. At ±90° pitch, roll and
     yaw turn about the same axis, so roll is set to zero and yaw carries the whole rotation.
     Use :func:`is_near_gimbal_lock` to flag outputs close to that point.
     """
@@ -242,8 +242,9 @@ def to_euler_zyx(q: npt.ArrayLike) -> EulerAngles:
     # Taking cos(pitch) from these terms keeps full precision near ±90°, where arcsin does not.
     cos_pitch = np.hypot(yaw_cos_term, yaw_sin_term)
     pitch = np.arctan2(sin_pitch, cos_pitch)
-    roll = np.arctan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y))
-    yaw = np.arctan2(yaw_sin_term, yaw_cos_term)
+    # atan2 can return exactly +pi, so wrapping keeps the documented [-pi, pi) range.
+    roll = wrap_angle(np.arctan2(2.0 * (w * x + y * z), 1.0 - 2.0 * (x * x + y * y)))
+    yaw = wrap_angle(np.arctan2(yaw_sin_term, yaw_cos_term))
 
     locked = cos_pitch < _GIMBAL_LOCK_COS
     locked_up = locked & (sin_pitch > 0.0)
