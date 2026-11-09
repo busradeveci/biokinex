@@ -26,10 +26,10 @@ Timestamp: TypeAlias = Annotated[float, Strict(), AllowInfNan(False), Field(ge=0
 
 SequenceNumber: TypeAlias = Annotated[int, Strict(), Field(ge=0, le=MAX_SEQUENCE)]
 
-Identifier: TypeAlias = Annotated[
-    str,
-    StringConstraints(pattern=r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"),
-]
+IDENTIFIER_PATTERN: Final = r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,63}$"
+"""Allowed form of device and joint identifiers; also used by codecs that skip Pydantic."""
+
+Identifier: TypeAlias = Annotated[str, StringConstraints(pattern=IDENTIFIER_PATTERN)]
 """Opaque machine identifier for a device or joint.
 
 The narrow character set keeps identifiers technical and stops free text from entering the system.
