@@ -6,7 +6,8 @@
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
 [![Typing: strict](https://img.shields.io/badge/typing-mypy%20strict-informational.svg)](https://mypy.readthedocs.io/)
 
-> **Status: pre-alpha.** The architecture is fixed and the core modules are being implemented.
+> **Status: pre-alpha.** All core modules are implemented and tested; examples and the first
+> tagged release are next.
 > APIs shown below describe the intended design and may change before the first release.
 
 ---
@@ -133,14 +134,13 @@ pip install -r requirements-dev.txt
 pip install -e .
 ```
 
-For a faster JSON codec, install the optional extra: `pip install -e ".[fast]"`.
-
 ## Development
 
 ```bash
 pytest                                  # run the test suite
 pytest --cov                            # with branch coverage (90% minimum)
-pytest tests/benchmarks                 # latency / throughput benchmarks
+pytest -m integration                   # end-to-end tests over real UDP sockets and replay files
+pytest tests/benchmarks --benchmark-enable --no-cov   # latency benchmarks (timing is off by default)
 mypy                                    # strict static type checking
 ruff check .                            # lint
 ruff format .                           # format
@@ -156,15 +156,36 @@ benchmark guards against latency regressions.
 At 500 Hz each sample has a 2 ms budget. The target is a **p99 processing latency below 200 µs per
 frame** on commodity hardware, with zero memory growth during sustained streaming.
 
+Measured on a Windows 11 laptop with Python 3.14 (one sample per packet unless noted). The full
+configuration uses median + low-pass on acceleration, notch + One-Euro on angular velocity,
+complementary fusion, and One-Euro + slew on orientation.
+
+| Benchmark                                         | Mean    | p99     |
+| ------------------------------------------------- | ------- | ------- |
+| `OneEuroFilter`, 3-vector step                    | 10 µs   | 19 µs   |
+| `OrientationOneEuroFilter` step                   | 7 µs    | 11 µs   |
+| Binary packet decode                              | 17 µs   | 24 µs   |
+| JSON packet decode                                | 22 µs   | 48 µs   |
+| Frame encode, binary / JSON                       | 5 / 54 µs | 9 / 87 µs |
+| Gap filler, no gap / one missing sample           | 10 / 67 µs | 18 / 123 µs |
+| Processor, full configuration                     | 129 µs  | 242 µs  |
+| Runtime, binary bytes in to frame bytes out       | 170 µs  | 273 µs  |
+
+The full pipeline uses about 7% of the per-sample budget on average, but its p99 is still above the
+200 µs target. The remaining cost is fixed Python overhead spread over about ten small per-sample
+stages, so it does not shrink with larger batches. Memory growth over 25,000 streamed samples is
+below 5 KiB.
+
 ## Roadmap
 
-- [ ] Core types, quaternion math, and schemas
-- [ ] Semantic validation and sequence tracking
-- [ ] Mirrored ring buffer
-- [ ] DSP filters: rotation utilities, One-Euro, complementary, biquad, median, slew, gap
-- [ ] Synchronous pipeline processor
-- [ ] Transports: codecs, in-memory, replay, UDP
-- [ ] Async runtime, watchdog, integration tests, and benchmarks
+- [x] Core types, quaternion math, and schemas
+- [x] Semantic validation and sequence tracking
+- [x] Mirrored ring buffer
+- [x] DSP filters: rotation utilities, One-Euro, complementary, biquad, median, slew, gap
+- [x] Synchronous pipeline processor
+- [x] Transports: codecs, in-memory, replay, UDP
+- [x] Async runtime, watchdog, integration tests, and benchmarks
+- [ ] Meet the 200 µs p99 target for the full configuration
 - [ ] Examples and first tagged release
 
 ## Contributing

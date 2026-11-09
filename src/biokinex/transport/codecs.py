@@ -144,10 +144,10 @@ class BinaryCodec:
 
         # A bytearray payload gives writable views, so every view is locked before it is shared.
         timestamps = read_only(records["timestamp"])
-        if not (np.all(np.isfinite(timestamps)) and timestamps[0] >= 0.0):
+        if not (np.isfinite(timestamps).all() and timestamps[0] >= 0.0):
             msg = "timestamps must be finite and non-negative"
             raise TelemetryError(msg)
-        if np.any(np.diff(timestamps) <= 0.0):
+        if count > 1 and (np.diff(timestamps) <= 0.0).any():
             msg = "timestamps must be strictly increasing"
             raise TelemetryError(msg)
 
@@ -388,7 +388,8 @@ def _optional_field(records: np.ndarray[Any, np.dtype[np.void]], name: str) -> F
     if name not in names:
         return None
     values: FloatArray = records[name]
-    if not np.all(np.isfinite(values)):
+    # The array method skips the dispatch layer of np.all, which matters on one-sample packets.
+    if not np.isfinite(values).all():
         msg = f"{name} values must be finite"
         raise TelemetryError(msg)
     return read_only(values)

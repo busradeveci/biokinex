@@ -161,7 +161,10 @@ class TelemetryValidator:
         result = self._try_fast_path(batch, verdicts)
         if result is None:
             result = self._validate_each_sample(batch, verdicts)
-        self._record(result)
+            self._record(result)
+        else:
+            # A fast-path batch is fully accepted with no gaps, so only one total changes.
+            self._verdict_totals[Verdict.ACCEPTED] += len(batch)
         return result
 
     def stats(self) -> ValidatorStats:
@@ -189,29 +192,24 @@ class TelemetryValidator:
     def _check_limits(self, batch: SampleBatch) -> npt.NDArray[np.uint8]:
         """Return a verdict per sample for the physical limit checks, using whole-array math."""
         limits = self._limits
-        passed = np.zeros(len(batch), dtype=np.bool_)
-        accel_bad = passed
+        checks: list[tuple[Verdict, npt.NDArray[np.bool_]]] = []
         if batch.acceleration is not None:
             accel_bad = np.any(np.abs(batch.acceleration) > limits.max_acceleration, axis=1)
-        gyro_bad = passed
+            checks.append((Verdict.ACCELERATION_OUT_OF_RANGE, accel_bad))
         if batch.angular_velocity is not None:
             gyro_bad = np.any(np.abs(batch.angular_velocity) > limits.max_angular_velocity, axis=1)
-        joint_bad = passed
+            checks.append((Verdict.ANGULAR_VELOCITY_OUT_OF_RANGE, gyro_bad))
         if batch.joint_angles is not None:
             angles = batch.joint_angles
             outside = (angles < limits.min_joint_angle) | (angles > limits.max_joint_angle)
-            joint_bad = np.any(outside, axis=1)
-        # np.select keeps the first matching condition, so this order sets the reported reason.
-        verdicts = np.select(
-            [accel_bad, gyro_bad, joint_bad],
-            [
-                Verdict.ACCELERATION_OUT_OF_RANGE,
-                Verdict.ANGULAR_VELOCITY_OUT_OF_RANGE,
-                Verdict.JOINT_ANGLE_OUT_OF_RANGE,
-            ],
-            default=Verdict.ACCEPTED,
-        )
-        return verdicts.astype(np.uint8)
+            checks.append((Verdict.JOINT_ANGLE_OUT_OF_RANGE, np.any(outside, axis=1)))
+        verdicts = np.zeros(len(batch), dtype=np.uint8)
+        # Writing in reverse order lets the first failed check set the reported reason.
+        for verdict, bad in reversed(checks):
+            # Most batches are clean, so skipping the masked write saves time on every packet.
+            if bad.any():
+                verdicts[bad] = verdict
+        return verdicts
 
     def _try_fast_path(
         self, batch: SampleBatch, verdicts: npt.NDArray[np.uint8]
@@ -224,12 +222,17 @@ class TelemetryValidator:
         if last is None or verdicts.any():
             return None
         n = len(batch)
-        expected = (last + 1 + np.arange(n, dtype=np.int64)) % SEQUENCE_MODULUS
+        sequences = batch.sequences
         timestamps = batch.timestamps
         if (
-            not np.array_equal(batch.sequences, expected)
+            int(sequences[0]) != (last + 1) % SEQUENCE_MODULUS
             or timestamps[0] <= self._last_timestamp
-            or np.any(np.diff(timestamps) <= 0.0)
+        ):
+            return None
+        # One-sample batches are the common low-latency case, so they skip the array checks.
+        # The modulus makes a step across the sequence wrap count as a step of one.
+        if n > 1 and (
+            np.any(np.diff(sequences) % SEQUENCE_MODULUS != 1) or np.any(np.diff(timestamps) <= 0.0)
         ):
             return None
         self._tracker.advance(int(batch.sequences[-1]))

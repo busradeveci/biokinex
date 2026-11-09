@@ -12,12 +12,11 @@ from __future__ import annotations
 import asyncio
 import json
 import math
-from collections.abc import Awaitable, Callable
 from os import PathLike
 from types import TracebackType
-from typing import IO, Any, Final, Self
+from typing import IO, Final, Self
 
-from biokinex.core.clock import Clock, MonotonicClock
+from biokinex.core.clock import Clock, MonotonicClock, Sleep
 from biokinex.core.errors import TransportError
 from biokinex.transport.base import TelemetrySource
 
@@ -25,8 +24,6 @@ __all__ = ["DEFAULT_MAX_LINE_BYTES", "RecordingSource", "ReplayRecorder", "Repla
 
 DEFAULT_MAX_LINE_BYTES: Final = 1 << 20
 """Longest accepted line; far above any valid packet, but it stops one bad line using all memory."""
-
-Sleep = Callable[[float], Awaitable[Any]]
 
 
 class ReplaySource:

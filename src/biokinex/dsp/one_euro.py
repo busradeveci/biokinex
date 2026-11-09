@@ -103,11 +103,11 @@ class OneEuroFilter:
         # Speed comes from consecutive raw samples, as in the reference implementation, so beta
         # scales the real rate of change of the signal.
         raw_derivative = (sample - self._previous_sample) / dt
-        self._derivative += smoothing_factor(self._derivative_cutoff_hz, dt) * (
-            raw_derivative - self._derivative
-        )
-        cutoff = self._min_cutoff_hz + self._beta * np.abs(self._derivative)
-        self._value += smoothing_factor(cutoff, dt) * (sample - self._value)
+        derivative_weight = _smoothing_weight(self._derivative_cutoff_hz, dt)
+        self._derivative += derivative_weight * (raw_derivative - self._derivative)
+        # This is smoothing_factor() inlined, because each extra array call costs about 1 us here.
+        r = (2.0 * math.pi * dt) * (self._min_cutoff_hz + self._beta * np.abs(self._derivative))
+        self._value += r / (1.0 + r) * (sample - self._value)
         self._previous_sample = sample
         self._timestamp = timestamp
         return self._value.copy()

@@ -12,6 +12,7 @@ degraded.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import NamedTuple
 
 import numpy as np
 import numpy.typing as npt
@@ -63,7 +64,8 @@ class GapFiller:
             raise ValueError(msg)
         self._policy = policy
         self._max_fill_samples = max_fill_samples
-        self._last: SampleBatch | None = None
+        # Batches are immutable, so keeping the previous one is safe and avoids a copy per batch.
+        self._last: _Row | None = None
 
     @classmethod
     def from_config(cls, config: GapConfig) -> GapFiller:
@@ -102,7 +104,7 @@ class GapFiller:
             )
         else:
             result = self._build(batch, fill_counts, restart)
-        self._last = batch.select(np.array([n - 1], dtype=np.int64))
+        self._last = _Row(batch, n - 1)
         return result
 
     def reset(self) -> None:
@@ -116,8 +118,10 @@ class GapFiller:
         if index > 0:
             return True
         # A gap at the start of the batch needs the previous batch, with the same channels.
-        previous = self._last
-        if previous is None or previous.joint_names != batch.joint_names:
+        if self._last is None:
+            return False
+        previous = self._last.batch
+        if previous.joint_names != batch.joint_names:
             return False
         return all(
             _shape_tail(getattr(previous, name)) == _shape_tail(getattr(batch, name))
@@ -149,7 +153,8 @@ class GapFiller:
         for index, count, previous in gaps:
             start = real_positions[index] - count
             steps = np.arange(1, count + 1, dtype=np.int64)
-            sequences[start : start + count] = (previous.sequences[0] + steps) % SEQUENCE_MODULUS
+            first = previous.batch.sequences[previous.position]
+            sequences[start : start + count] = (first + steps) % SEQUENCE_MODULUS
 
         linear = self._policy is GapPolicy.LINEAR
         channels: dict[str, FloatArray | None] = {}
@@ -175,10 +180,10 @@ class GapFiller:
             batch=filled, synthetic=read_only(synthetic), restarts=read_only(out_restarts)
         )
 
-    def _row(self, batch: SampleBatch, index: int) -> SampleBatch:
+    def _row(self, batch: SampleBatch, index: int) -> _Row:
         """Return the real sample before a gap; index ``-1`` means the previous batch."""
         if index >= 0:
-            return batch.select(np.array([index], dtype=np.int64))
+            return _Row(batch, index)
         assert self._last is not None  # Guaranteed by _can_fill.
         return self._last
 
@@ -187,7 +192,7 @@ class GapFiller:
         values: FloatArray,
         real_positions: IntArray,
         total: int,
-        gaps: list[tuple[int, int, SampleBatch]],
+        gaps: list[tuple[int, int, _Row]],
         name: str,
         *,
         linear: bool,
@@ -196,7 +201,7 @@ class GapFiller:
         output = np.empty((total, *values.shape[1:]), dtype=np.float64)
         output[real_positions] = values
         for index, count, previous in gaps:
-            start_value = getattr(previous, name)[0]
+            start_value = getattr(previous.batch, name)[previous.position]
             end_value = values[index]
             fractions = np.arange(1, count + 1, dtype=np.float64) / (count + 1)
             start = real_positions[index] - count
@@ -213,6 +218,13 @@ class GapFiller:
                 shaped = fractions.reshape((count,) + (1,) * step.ndim)
                 output[start : start + count] = start_value + shaped * step
         return read_only(output)
+
+
+class _Row(NamedTuple):
+    """One real sample, given by its batch and its position in that batch."""
+
+    batch: SampleBatch
+    position: int
 
 
 def _shape_tail(values: FloatArray | None) -> tuple[int, ...] | None:

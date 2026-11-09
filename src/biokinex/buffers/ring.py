@@ -165,6 +165,9 @@ class RingBuffer:
         must match exactly. A ``-1`` in ``shape`` accepts any length on that axis.
         """
         values = np.asarray(data, dtype=np.float64)
+        # An exact match is the common case on the hot path, so it is checked first.
+        if values.shape == shape:
+            return values
         matches = values.ndim == len(shape) and all(
             expected in (-1, actual) for expected, actual in zip(shape, values.shape, strict=True)
         )

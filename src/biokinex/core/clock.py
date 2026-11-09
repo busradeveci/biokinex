@@ -9,7 +9,11 @@ from __future__ import annotations
 
 import math
 import time
-from typing import Protocol, runtime_checkable
+from collections.abc import Awaitable, Callable
+from typing import Any, Protocol, TypeAlias, runtime_checkable
+
+Sleep: TypeAlias = Callable[[float], Awaitable[Any]]
+"""An async sleep such as :func:`asyncio.sleep`; tests pass a fake that moves a manual clock."""
 
 
 @runtime_checkable

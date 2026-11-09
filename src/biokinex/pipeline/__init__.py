@@ -8,14 +8,19 @@ from biokinex.pipeline.factory import (
 )
 from biokinex.pipeline.history import FrameHistory, HistoryLayout, HistoryWindow
 from biokinex.pipeline.processor import PipelineProcessor, ProcessorStats, ProcessResult
+from biokinex.pipeline.runtime import PipelineRuntime, RuntimeStats
+from biokinex.pipeline.watchdog import Watchdog
 
 __all__ = [
     "FrameHistory",
     "HistoryLayout",
     "HistoryWindow",
     "PipelineProcessor",
+    "PipelineRuntime",
     "ProcessResult",
     "ProcessorStats",
+    "RuntimeStats",
+    "Watchdog",
     "build_chain",
     "build_filter",
     "build_orientation_chain",

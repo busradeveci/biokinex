@@ -11,6 +11,3 @@ hypothesis>=6.100
 # Static analysis
 mypy>=1.10
 ruff>=0.6
-
-# Optional fast JSON codec, exercised by the codec tests
-orjson>=3.10
