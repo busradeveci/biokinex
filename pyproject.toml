@@ -24,7 +24,7 @@ keywords = [
     "telemetry",
 ]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
@@ -60,7 +60,7 @@ path = "src/biokinex/_version.py"
 packages = ["src/biokinex"]
 
 [tool.hatch.build.targets.sdist]
-include = ["src/biokinex", "tests", "README.md", "LICENSE", "pyproject.toml"]
+include = ["src/biokinex", "tests", "examples", "README.md", "LICENSE", "pyproject.toml"]
 
 # ---------------------------------------------------------------------------
 # Pytest
@@ -111,7 +111,7 @@ exclude_also = [
 
 [tool.mypy]
 python_version = "3.11"
-files = ["src", "tests"]
+files = ["src", "tests", "examples"]
 strict = true
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
