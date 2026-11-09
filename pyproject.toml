@@ -99,6 +99,7 @@ exclude_also = [
     "raise NotImplementedError",
     "@(typing\\.)?overload",
     "\\.\\.\\.",
+    "assert_never\\(",
 ]
 
 # ---------------------------------------------------------------------------

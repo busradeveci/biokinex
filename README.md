@@ -95,11 +95,11 @@ All internal computation uses SI units: seconds, metres, m/s², rad/s, and radia
 ```
 src/biokinex/
 ├── core/            # types, quaternion math, injectable clock, errors
-├── schemas/         # Pydantic models: telemetry packets, pose frames, pipeline config
-├── validation/      # physical sensor limits, semantic validator, sequence tracking
+├── schemas/         # Pydantic models: telemetry packets, pose frames, sensor limits, pipeline config
+├── validation/      # semantic validator, sequence tracking
 ├── buffers/         # mirrored zero-copy ring buffer
 ├── dsp/             # One-Euro, complementary (Mahony-style), biquad, median, slew, gap, rotation
-├── pipeline/        # synchronous processor, async runtime, watchdog
+├── pipeline/        # filter factory, frame history, synchronous processor, async runtime, watchdog
 ├── transport/       # source/sink protocols, JSON & binary codecs, UDP, memory, replay
 └── observability/   # allocation-free counters and latency histograms
 ```

@@ -13,7 +13,7 @@ from numpy.testing import assert_allclose
 from biokinex.core.errors import TelemetryError
 from biokinex.schemas.batch import SampleBatch
 from biokinex.schemas.common import MAX_SEQUENCE
-from biokinex.validation.limits import SensorLimits
+from biokinex.schemas.limits import SensorLimits
 from biokinex.validation.validator import TelemetryValidator, ValidationResult, Verdict
 
 DT = 0.002

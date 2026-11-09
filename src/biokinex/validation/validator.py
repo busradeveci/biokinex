@@ -20,7 +20,7 @@ import numpy.typing as npt
 from biokinex.core.errors import TelemetryError
 from biokinex.core.types import BoolArray, IntArray
 from biokinex.schemas.batch import SampleBatch, read_only
-from biokinex.validation.limits import SensorLimits
+from biokinex.schemas.limits import SensorLimits
 from biokinex.validation.sequence import (
     DEFAULT_MAX_FORWARD_JUMP,
     DEFAULT_REORDER_WINDOW,

@@ -11,8 +11,10 @@ from biokinex.schemas.config import (
     NotchConfig,
     OneEuroConfig,
     PipelineConfig,
+    SequenceConfig,
     SlewRateConfig,
 )
+from biokinex.schemas.limits import SensorLimits
 from biokinex.schemas.pose import FrameStatus, PoseFrame
 from biokinex.schemas.telemetry import (
     MAX_SAMPLES_PER_PACKET,
@@ -41,6 +43,8 @@ __all__ = [
     "PipelineConfig",
     "PoseFrame",
     "SampleBatch",
+    "SensorLimits",
+    "SequenceConfig",
     "SlewRateConfig",
     "TelemetryPacket",
     "TelemetrySample",

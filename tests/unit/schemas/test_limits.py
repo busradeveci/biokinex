@@ -1,4 +1,4 @@
-"""Tests for biokinex.validation.limits."""
+"""Tests for biokinex.schemas.limits."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from biokinex.core.types import STANDARD_GRAVITY
-from biokinex.validation.limits import SensorLimits
+from biokinex.schemas.limits import SensorLimits
 
 
 def test_defaults_match_16g_2000dps_imu() -> None:
@@ -45,3 +45,9 @@ def test_rejects_invalid_limits(raw: dict[str, float]) -> None:
 def test_joint_range_message() -> None:
     with pytest.raises(ValidationError, match="min_joint_angle must be smaller"):
         SensorLimits(min_joint_angle=1.0, max_joint_angle=0.0)
+
+
+def test_is_still_exported_from_validation() -> None:
+    from biokinex import validation  # noqa: PLC0415
+
+    assert validation.SensorLimits is SensorLimits

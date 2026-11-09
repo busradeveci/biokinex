@@ -16,8 +16,14 @@ Example ``biokinex.toml``::
     [fusion]
     gain = 2.0
 
-Each channel has its own filter chain, applied in the listed order. All rates and cutoffs use SI
-units, so a slew limit on angular velocity is in rad/s², and on orientation in rad/s.
+    [limits]
+    max_acceleration = 78.45  # 8 g, in m/s²
+
+    [sequence]
+    max_forward_jump = 500
+
+Each channel has its own filter chain, applied in the listed order. All rates, cutoffs, and limits
+use SI units, so a slew limit on angular velocity is in rad/s², and on orientation in rad/s.
 """
 
 from __future__ import annotations
@@ -31,6 +37,7 @@ from pydantic import Field, StrictBool, StrictInt, ValidationError, model_valida
 
 from biokinex.core.errors import ConfigurationError
 from biokinex.schemas.common import FrozenModel, NonNegativeFloat, PositiveFloat
+from biokinex.schemas.limits import SensorLimits
 
 __all__ = [
     "ComplementaryConfig",
@@ -42,11 +49,15 @@ __all__ = [
     "NotchConfig",
     "OneEuroConfig",
     "PipelineConfig",
+    "SequenceConfig",
     "SlewRateConfig",
 ]
 
 MAX_FILTERS_PER_CHAIN: Final = 16
 MAX_SAMPLE_RATE_HZ: Final = 100_000.0
+MAX_HISTORY_SIZE: Final = 100_000
+# Sequence ranges must stay below half of the 32-bit counter, or a step could be read both ways.
+_HALF_SEQUENCE_RANGE: Final = 2**31
 
 
 class OneEuroConfig(FrozenModel):
@@ -140,6 +151,19 @@ class GapConfig(FrozenModel):
     """Longest gap that is filled; longer gaps restart the filters instead of inventing data."""
 
 
+class SequenceConfig(FrozenModel):
+    """Rules for reading device sequence numbers and timestamps across packets."""
+
+    reorder_window: StrictInt = Field(default=64, ge=0, lt=_HALF_SEQUENCE_RANGE)
+    """How far back a sequence number may be and still count as a late packet, not a restart."""
+
+    max_forward_jump: StrictInt = Field(default=1000, ge=1, lt=_HALF_SEQUENCE_RANGE)
+    """Largest forward step still treated as packet loss; larger jumps mean a device restart."""
+
+    max_consecutive_time_errors: StrictInt = Field(default=10, ge=1, le=100_000)
+    """Time errors in a row after which the stream restarts from the next sample."""
+
+
 class PipelineConfig(FrozenModel):
     """Top-level configuration for one processing pipeline."""
 
@@ -153,7 +177,12 @@ class PipelineConfig(FrozenModel):
 
     fusion: ComplementaryConfig = ComplementaryConfig()
     gap: GapConfig = GapConfig()
+    limits: SensorLimits = SensorLimits()
+    sequence: SequenceConfig = SequenceConfig()
     watchdog_timeout_s: PositiveFloat = 0.1
+
+    history_size: StrictInt = Field(default=512, ge=1, le=MAX_HISTORY_SIZE)
+    """Number of recent output frames kept for zero-copy access to their values."""
 
     @model_validator(mode="after")
     def _check_against_sample_rate(self) -> Self:

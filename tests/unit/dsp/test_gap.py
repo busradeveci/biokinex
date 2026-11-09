@@ -15,7 +15,7 @@ from biokinex.dsp.gap import GapFiller
 from biokinex.schemas.batch import SampleBatch
 from biokinex.schemas.common import MAX_SEQUENCE
 from biokinex.schemas.config import GapConfig, GapPolicy
-from biokinex.validation.limits import SensorLimits
+from biokinex.schemas.limits import SensorLimits
 from biokinex.validation.validator import TelemetryValidator
 
 DT = 0.002

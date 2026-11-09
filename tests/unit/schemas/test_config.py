@@ -21,8 +21,16 @@ from biokinex.schemas.config import (
     NotchConfig,
     OneEuroConfig,
     PipelineConfig,
+    SequenceConfig,
     SlewRateConfig,
 )
+from biokinex.schemas.limits import SensorLimits
+from biokinex.validation.sequence import (
+    DEFAULT_MAX_FORWARD_JUMP,
+    DEFAULT_REORDER_WINDOW,
+    SequenceTracker,
+)
+from biokinex.validation.validator import DEFAULT_MAX_CONSECUTIVE_TIME_ERRORS
 
 FULL_TOML = """
 sample_rate_hz = 500
@@ -57,6 +65,16 @@ accel_tolerance = 0.2
 [gap]
 policy = "linear"
 max_fill_samples = 4
+
+[limits]
+max_acceleration = 78.45
+min_joint_angle = 0.0
+max_joint_angle = 2.5
+
+[sequence]
+reorder_window = 16
+max_forward_jump = 250
+max_consecutive_time_errors = 3
 """
 
 
@@ -74,7 +92,16 @@ class TestDefaults:
         assert config.fusion == ComplementaryConfig()
         assert config.fusion.enabled is True
         assert config.gap == GapConfig(policy=GapPolicy.HOLD, max_fill_samples=10)
+        assert config.limits == SensorLimits()
+        assert config.sequence == SequenceConfig()
         assert config.watchdog_timeout_s == 0.1
+        assert config.history_size == 512
+
+    def test_sequence_defaults_match_validator_defaults(self) -> None:
+        sequence = SequenceConfig()
+        assert sequence.reorder_window == DEFAULT_REORDER_WINDOW
+        assert sequence.max_forward_jump == DEFAULT_MAX_FORWARD_JUMP
+        assert sequence.max_consecutive_time_errors == DEFAULT_MAX_CONSECUTIVE_TIME_ERRORS
 
     def test_filter_defaults(self) -> None:
         assert OneEuroConfig() == OneEuroConfig(
@@ -98,6 +125,12 @@ class TestToml:
         )
         assert config.fusion == ComplementaryConfig(gain=2.0, accel_tolerance=0.2)
         assert config.gap == GapConfig(policy=GapPolicy.LINEAR, max_fill_samples=4)
+        assert config.limits == SensorLimits(
+            max_acceleration=78.45, min_joint_angle=0.0, max_joint_angle=2.5
+        )
+        assert config.sequence == SequenceConfig(
+            reorder_window=16, max_forward_jump=250, max_consecutive_time_errors=3
+        )
 
     def test_module_docstring_example_is_valid(self) -> None:
         doc = config_module.__doc__ or ""
@@ -105,6 +138,8 @@ class TestToml:
         config = PipelineConfig.from_toml(textwrap.dedent(example))
         assert config.angular_velocity_filters == (LowPassConfig(cutoff_hz=40.0),)
         assert config.fusion.gain == 2.0
+        assert config.limits.max_acceleration == 78.45
+        assert config.sequence.max_forward_jump == 500
 
     def test_fusion_can_be_disabled(self) -> None:
         config = PipelineConfig.from_toml("sample_rate_hz = 200\n[fusion]\nenabled = false\n")
@@ -213,6 +248,38 @@ class TestFieldRules:
     def test_rejects_invalid_gap(self, raw: dict[str, Any]) -> None:
         with pytest.raises(ValidationError):
             GapConfig.model_validate(raw)
+
+    @pytest.mark.parametrize(
+        "raw",
+        [
+            {"reorder_window": -1},
+            {"reorder_window": 2**31},
+            {"max_forward_jump": 0},
+            {"max_forward_jump": 2**31},
+            {"max_consecutive_time_errors": 0},
+            {"max_consecutive_time_errors": 2.0},
+            {"window": 5},
+        ],
+    )
+    def test_rejects_invalid_sequence(self, raw: dict[str, Any]) -> None:
+        with pytest.raises(ValidationError):
+            SequenceConfig.model_validate(raw)
+
+    def test_largest_sequence_ranges_are_accepted_by_tracker(self) -> None:
+        sequence = SequenceConfig(reorder_window=2**31 - 1, max_forward_jump=2**31 - 1)
+        tracker = SequenceTracker(
+            reorder_window=sequence.reorder_window, max_forward_jump=sequence.max_forward_jump
+        )
+        assert tracker.last is None
+
+    @pytest.mark.parametrize("size", [0, 100_001, 1.5, True])
+    def test_rejects_invalid_history_size(self, size: Any) -> None:
+        with pytest.raises(ValidationError):
+            pipeline(history_size=size)
+
+    def test_rejects_invalid_limits_inside_pipeline(self) -> None:
+        with pytest.raises(ValidationError, match="limits"):
+            pipeline(limits={"max_acceleration": -1.0})
 
     def test_notch_requires_q(self) -> None:
         with pytest.raises(ValidationError):

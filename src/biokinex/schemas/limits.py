@@ -1,4 +1,8 @@
-"""Physical limits that a plausible sensor reading must respect."""
+"""Physical limits that a plausible sensor reading must respect.
+
+The limits live in the schema layer, so the pipeline configuration can include them and load them
+from TOML. The validator reads them from here.
+"""
 
 from __future__ import annotations
 

@@ -1,6 +1,6 @@
 """Semantic validation: physical limits and stream order across packets."""
 
-from biokinex.validation.limits import SensorLimits
+from biokinex.schemas.limits import SensorLimits
 from biokinex.validation.sequence import SequenceCheck, SequenceStatus, SequenceTracker
 from biokinex.validation.validator import (
     TelemetryValidator,
